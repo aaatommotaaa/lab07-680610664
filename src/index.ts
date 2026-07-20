@@ -1,55 +1,63 @@
-import express, { type Request, type Response } from 'express';
+import express, { type Request, type Response } from "express";
 
 // import middleware
 import morgan from "morgan";
 
 // import database
-import { students } from '@db/db.js';
+import { students } from "@db/db.js";
 import { type Student, type Course } from "@libs/types.js";
 import {
   zStudentDeleteBody,
   zStudentPostBody,
   zStudentPutBody,
 } from "@libs/studentValidator.js";
+import { success } from "zod";
 
 const app = express();
 const port = process.env.PORT || 3000;
 
 // use middleware
 app.use(morgan("dev", { immediate: false }));
-app.use(express.json());    // parses request's payload into 'req.body'
+app.use(express.json()); // parses request's payload into 'req.body'
 
 // Endpoints
-app.get("/", (req: Request, res: Response) => {
-  res.send("API services for Student Data");
+app.get("/api/me", (req: Request, res: Response) => {
+  return res.json({
+    ok: true,
+    fullName: "Chanidapha Phairintharapha",
+    studentId: "680610664",
+  });
 });
 
 // GET /students
 // get students (by program)
 app.get("/students", (req: Request, res: Response) => {
   try {
-    const program = req.query.program;
+    const program = req.query.program as string | undefined;
+    const studentId = req.query.studentId as string | undefined;
+
+    let filteredStudents = students;
+
+    if (studentId) {
+      filteredStudents = filteredStudents.filter(
+        (student) => student.studentId === studentId,
+      );
+    }
 
     if (program) {
-      let filtered_students = students.filter(
-        (student) => student.program === program
+      filteredStudents = filteredStudents.filter(
+        (student) => student.program === program,
       );
-      return res.json({
-        success: true,
-        data: filtered_students,
-      });
-    } else {
-      return res.json({
-        success: true,
-        count: students.length,
-        data: students,
-      });
     }
-  } catch (err) {
+
     return res.json({
-      success: false,
+      ok: true,
+      data: filteredStudents,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      ok: false,
       message: "Something is wrong, please try again",
-      error: err,
     });
   }
 });
@@ -71,7 +79,7 @@ app.post("/students", (req: Request, res: Response) => {
 
     //check duplicate studentId
     const found = students.find(
-      (student) => student.studentId === body.studentId
+      (student) => student.studentId === body.studentId,
     );
     if (found) {
       return res.json({
@@ -118,7 +126,7 @@ app.put("/students", (req: Request, res: Response) => {
 
     //check duplicate studentId
     const foundIndex = students.findIndex(
-      (student) => student.studentId === body.studentId
+      (student) => student.studentId === body.studentId,
     );
 
     if (foundIndex === -1) {
@@ -150,9 +158,42 @@ app.put("/students", (req: Request, res: Response) => {
 
 // DELETE /students, body = {studentId}
 app.delete("/students", (req: Request, res: Response) => {
-  res.json({
-    message: "Implement this!"
-  })
+  try {
+    const body = req.body as Student;
+
+    const result = zStudentDeleteBody.safeParse(body);
+
+    if (!result.success) {
+      return res.status(400).json({
+        ok: false,
+        message: "Student Id must contain 9 characters",
+      });
+    }
+
+    const foundIndex = students.findIndex(
+      (student) => student.studentId === body.studentId,
+    );
+
+    if (foundIndex === -1) {
+      return res.status(404).json({
+        ok: false,
+        message: "Student Id not found",
+      });
+    }
+
+    const deletedStudent = students.splice(foundIndex, 1);
+
+    return res.json({
+      ok: true,
+      message: `Student Id ${body.studentId} has been deleted`,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: "Something is wrong, please try again",
+      error: err,
+    });
+  }
 });
 
 // GET /api/me
