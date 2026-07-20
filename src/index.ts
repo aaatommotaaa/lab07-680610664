@@ -22,9 +22,7 @@ app.use(express.json()); // parses request's payload into 'req.body'
 
 // Endpoints
 app.get("/", (req: Request, res: Response) => {
-  return res.json({
-    message: "API services for Student Data",
-  });
+  res.send("API services for Student Data");
 });
 
 app.get("/api/me", (req: Request, res: Response) => {
