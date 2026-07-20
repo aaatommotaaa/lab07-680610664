@@ -6,7 +6,7 @@
 
 ชื่อ-สกุล : ชนิดาภา ไพรินทราภา
 
-Vercel URL :
+Vercel URL : https://lab07-680610664.vercel.app
 
 ---
 
